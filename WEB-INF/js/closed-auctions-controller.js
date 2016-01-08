@@ -44,12 +44,14 @@ this.de.sb.broker = this.de.sb.broker || {};
 	de.sb.broker.ClosedAuctionsController.prototype.displayClosedAuctions = function () {
 		var self = this;
 		var user = this.sessionContext.user;
-		de.sb.util.AJAX.invoke("/services/auctions?closuretimeUpper=" + Date.now(), "GET", {"Accept": "application/json"}, user, function (request) {
+		var userIdentity = user.identity; 
+		de.sb.util.AJAX.invoke("/services/" + userIdentity + "/auctions?closuretimeUpper=" + Date.now(), "GET", {"Accept": "application/json"}, null, user, function (request) {
 			self.displayStatus(request.status, request.statusText);
 			if (request.status === 200) {
-				response.forEach(auction, index, array) {
+				var auctions = JSON.parse(request.responseText);
+				auctions.forEach(function (auction, index) {
 					var auctionIdentity = auction.identity;
-					de.sb.util.AJAX.invoke("/services/" + auctionIdentity + "/bid", "GET", {"Accept": "application/json"}, user, function (request) {
+					de.sb.util.AJAX.invoke("/services/" + auctionIdentity + "/bid", "GET", {"Accept": "application/json"}, null, user, function (request) {
 						self.displayStatus(request.status, request.statusText);
 						if (request.status === 200) {								
 							var activeElements = document.querySelectorAll("section.closed-seller-auctions td");
