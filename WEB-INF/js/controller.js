@@ -65,4 +65,15 @@ this.de.sb.broker = this.de.sb.broker || {};
 				break;
 		}
 	}
+	
+	/**
+	 * Displays the view associated with this controller by marking said
+	 * view's menu item as selected, and removing the main element's
+	 * children.
+	 */
+	de.sb.broker.Controller.prototype.prettyPrice = function (cents) {
+		var centPart = cents % 100;
+		centPart = (centPart.toString().length == 1) ? "0"+ centPart.toString():centPart.toString();
+		return cents/100 + "." + centPart;
+	}
 } ());

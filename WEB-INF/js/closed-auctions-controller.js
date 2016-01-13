@@ -29,10 +29,10 @@ this.de.sb.broker = this.de.sb.broker || {};
 		SUPER.prototype.display.call(this);
 		this.displayStatus(200, "OK");
 
-		var sectionElement = document.querySelector("#closed-seller-auctions-template").content.cloneNode(true).firstElementChild;
-		var sectionElement1 = document.querySelector("#closed-bidder-auctions-template").content.cloneNode(true).firstElementChild;
-		document.querySelector("main").appendChild(sectionElement);
-		document.querySelector("main").appendChild(sectionElement1);
+		var closedAuctionElement = document.querySelector("#closed-seller-auctions-template").content.cloneNode(true).firstElementChild;
+		var bidsInClosedAuctionsElement = document.querySelector("#closed-bidder-auctions-template").content.cloneNode(true).firstElementChild;
+		document.querySelector("main").appendChild(closedAuctionElement);
+		document.querySelector("main").appendChild(bidsInClosedAuctionsElement);
 		
 		this.displayClosedAuctions();
 	}
@@ -44,27 +44,52 @@ this.de.sb.broker = this.de.sb.broker || {};
 	de.sb.broker.ClosedAuctionsController.prototype.displayClosedAuctions = function () {
 		var self = this;
 		var user = this.sessionContext.user;
-		var userIdentity = user.identity; 
-		de.sb.util.AJAX.invoke("/services/" + userIdentity + "/auctions?closuretimeUpper=" + Date.now(), "GET", {"Accept": "application/json"}, null, user, function (request) {
+		de.sb.util.AJAX.invoke("/services/auctions/?closuretimeUpper=" + Date.now(), "GET", {"Accept": "application/json"}, null, user, function (request) {
 			self.displayStatus(request.status, request.statusText);
 			if (request.status === 200) {
 				var auctions = JSON.parse(request.responseText);
-				auctions.forEach(function (auction, index) {
-					var auctionIdentity = auction.identity;
-					de.sb.util.AJAX.invoke("/services/" + auctionIdentity + "/bid", "GET", {"Accept": "application/json"}, null, user, function (request) {
-						self.displayStatus(request.status, request.statusText);
-						if (request.status === 200) {								
-							var activeElements = document.querySelectorAll("section.closed-seller-auctions td");
-							activeElements[0].value = bid.bidder;
-							activeElements[1].value = auction.creationTimestamp;
-							activeElements[2].value = auction.closureTimestamp;
-							activeElements[3].value = auction.title;
-							activeElements[4].value = auction.unitCount;
-							activeElements[5].value = auction.askingPrice;
-							activeElements[6].value = bid.price;
-						}
-					});
-				}
+				console.log(auctions);
+				auctions.forEach(function(auction, index){
+					var tableRowElement = document.querySelector("#table-row").content.querySelector('tr').cloneNode(true);
+					var tableCells = tableRowElement.querySelectorAll('td');
+					tableCells[0].innerHTML = auction.closed;
+					tableCells[1].innerHTML = new Date(auction.creationTimestamp);
+					tableCells[2].innerHTML = new Date(auction.closureTimestamp);
+					tableCells[3].innerHTML = auction.title;
+					tableCells[4].innerHTML = auction.unitCount;
+					tableCells[5].innerHTML = de.sb.broker.ClosedAuctionsController.prototype.prettyPrice(auction.askingPrice);
+					tableCells[6].innerHTML = "";
+					document.querySelector("section.closed-seller-auctions tbody").appendChild(tableRowElement);
+				});
+			}
+		});	
+	}
+	
+	/**
+	 * Displays the closed auctions of the user.
+	 */
+	de.sb.broker.ClosedAuctionsController.prototype.displayBidsInClosedAuctions = function () {
+		var self = this;
+		var user = this.sessionContext.user;
+		de.sb.util.AJAX.invoke("/services/auctions/?closuretimeUpper=" + Date.now(), "GET", {"Accept": "application/json"}, null, user, function (request) {
+			self.displayStatus(request.status, request.statusText);
+			if (request.status === 200) {
+				var auctions = JSON.parse(request.responseText);
+				console.log(auctions);
+				auctions.forEach(function(auction, index){
+					var tableRowElement = document.querySelector("#table-row").content.querySelector('tr').cloneNode(true);
+					var tableCells = tableRowElement.querySelectorAll('td');
+					tableCells[0].innerHTML = auction.closed;
+					tableCells[1].innerHTML = new Date(auction.creationTimestamp);
+					tableCells[2].innerHTML = new Date(auction.closureTimestamp);
+					tableCells[3].innerHTML = auction.title;
+					tableCells[4].innerHTML = auction.unitCount;
+					var cents = (auction.askingPrice % 100);
+					var cents = (cents.toString().length == 1) ? "0"+ (auction.askingPrice % 100): (auction.askingPrice % 100);
+					tableCells[5].innerHTML = auction.askingPrice / 100 + "." + cents;
+					tableCells[6].innerHTML = "";
+					document.querySelector("section.closed-seller-auctions tbody").appendChild(tableRowElement);
+				});
 			}
 		});	
 	}
