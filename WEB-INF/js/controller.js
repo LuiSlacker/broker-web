@@ -72,9 +72,22 @@ this.de.sb.broker = this.de.sb.broker || {};
 	 * children.
 	 */
 	de.sb.broker.Controller.prototype.prettyPrice = function (cents) {
-		
-		var centPart = cents % 100;
-		centPart = (centPart.toString().length == 1) ? "0"+ centPart.toString():centPart.toString();
-		return cents/100 + "." + centPart;
+		return this.addLeadingZero(cents/100) + "." + this.addLeadingZero(cents % 100);
 	}
+	
+	/**
+	 * Displays the view associated with this controller by marking said
+	 * view's menu item as selected, and removing the main element's
+	 * children.
+	 */
+	de.sb.broker.Controller.prototype.prettyDate = function (timestamp) {
+		var date = new Date(timestamp);
+		return this.addLeadingZero(date.getMonth()) + "/" + this.addLeadingZero(date.getDate()) + "/" + date.getFullYear() + 
+		" @ " + this.addLeadingZero(date.getHours()) + ":" + this.addLeadingZero(date.getMinutes());
+	}
+	
+	de.sb.broker.Controller.prototype.addLeadingZero = function (number) {
+		return (number.toString().length == 1) ? "0"+ number : number; 
+	}
+	
 } ());
