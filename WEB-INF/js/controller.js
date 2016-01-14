@@ -72,6 +72,7 @@ this.de.sb.broker = this.de.sb.broker || {};
 	 * children.
 	 */
 	de.sb.broker.Controller.prototype.prettyPrice = function (cents) {
+		
 		var centPart = cents % 100;
 		centPart = (centPart.toString().length == 1) ? "0"+ centPart.toString():centPart.toString();
 		return cents/100 + "." + centPart;
