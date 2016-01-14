@@ -16,6 +16,7 @@ this.de.sb.broker = this.de.sb.broker || {};
 	 */
 	de.sb.broker.ClosedAuctionsController = function (sessionContext) {
 		SUPER.call(this, 2, sessionContext);
+		this.statusLog = [];
 	}
 	de.sb.broker.ClosedAuctionsController.prototype = Object.create(SUPER.prototype);
 	de.sb.broker.ClosedAuctionsController.prototype.constructor = de.sb.broker.ClosedAuctionsController;
@@ -49,7 +50,6 @@ this.de.sb.broker = this.de.sb.broker || {};
 			self.displayStatus(request.status, request.statusText);
 			if (request.status === 200) {
 				var auctions = JSON.parse(request.responseText);
-				console.log(auctions);
 				auctions.forEach(function(auction, index){
 					if (auction.sellerReference == user.identity){
 						var winningBid = de.sb.broker.ClosedAuctionsController.prototype.findAuctionWinningBid(auction);
@@ -105,7 +105,8 @@ this.de.sb.broker = this.de.sb.broker || {};
 		var self = this;
 		var user = this.sessionContext.user;
 		de.sb.util.AJAX.invoke("/services/people/" + user.identity + "/auctions?closed=true", "GET", {"Accept": "application/json"}, null, user, function (request) {
-			self.displayStatus(request.status, request.statusText);
+			self.statusLog.push({"status": request.status, "statusText": request.statusText});
+			//self.displayStatus(request.status, request.statusText);
 			if (request.status === 200) {
 				var auctions = JSON.parse(request.responseText);
 				console.log(auctions);
@@ -135,7 +136,9 @@ this.de.sb.broker = this.de.sb.broker || {};
 		var self = this;
 		var user = this.sessionContext.user;
 		de.sb.util.AJAX.invoke("/services/people/" + id, "GET", {"Accept": "application/json"}, null, user, function (request) {
-			self.displayStatus(request.status, request.statusText);
+			self.statusLog.push({"status": request.status, "statusText": request.statusText});
+			var highestStatus = self.getHighestStatus(self.statusLog);
+			self.displayStatus(highestStatus.status, highestStatus.statusText);
 			if (request.status === 200) {
 				document.querySelectorAll("section.closed-bidder-auctions td")[0].innerHTML = JSON.parse(request.responseText).alias;
 			}

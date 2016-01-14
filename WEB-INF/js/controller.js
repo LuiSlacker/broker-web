@@ -66,20 +66,10 @@ this.de.sb.broker = this.de.sb.broker || {};
 		}
 	}
 	
-	/**
-	 * Displays the view associated with this controller by marking said
-	 * view's menu item as selected, and removing the main element's
-	 * children.
-	 */
 	de.sb.broker.Controller.prototype.prettyPrice = function (cents) {
 		return this.addLeadingZero(cents/100) + "." + this.addLeadingZero(cents % 100);
 	}
 	
-	/**
-	 * Displays the view associated with this controller by marking said
-	 * view's menu item as selected, and removing the main element's
-	 * children.
-	 */
 	de.sb.broker.Controller.prototype.prettyDate = function (timestamp) {
 		var date = new Date(timestamp);
 		return this.addLeadingZero(date.getMonth()) + "/" + this.addLeadingZero(date.getDate()) + "/" + date.getFullYear() + 
@@ -88,6 +78,18 @@ this.de.sb.broker = this.de.sb.broker || {};
 	
 	de.sb.broker.Controller.prototype.addLeadingZero = function (number) {
 		return (number.toString().length == 1) ? "0"+ number : number; 
+	}
+	
+	de.sb.broker.Controller.prototype.getHighestStatus = function (statusLog) {
+		var minStatus = 0;
+		var maxStatus = null;
+		statusLog.forEach(function(singleStatus, index){
+			if (singleStatus.status > minStatus){
+				minStatus = singleStatus.status;
+				maxStatus = singleStatus;
+			}
+		});
+		return maxStatus;
 	}
 	
 } ());
