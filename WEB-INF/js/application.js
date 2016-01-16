@@ -25,7 +25,38 @@ this.de.sb.broker = this.de.sb.broker || {};
 			: new de.sb.broker.Controller(2),
 		preferencesController: "PreferencesController" in de.sb.broker
 			? new de.sb.broker.PreferencesController(SESSION_CONTEXT)
-			: new de.sb.broker.Controller(3)
+			: new de.sb.broker.Controller(3),
+		prettyPrice:function (cents) {
+			return this.addLeadingZero(cents/100) + "." + this.addLeadingZero(cents % 100);
+		},
+		prettyDate: function (timestamp) {
+			var date = new Date(timestamp);
+			return this.addLeadingZero(date.getMonth()) + "/" + this.addLeadingZero(date.getDate()) + "/" + date.getFullYear() + 
+			" @ " + this.addLeadingZero(date.getHours()) + ":" + this.addLeadingZero(date.getMinutes());
+		},
+		addLeadingZero: function (number) {
+			return (number.toString().length == 1) ? "0"+ number : number; 
+		},
+		getHighestStatus: function (statusLog) {
+			var minStatus = 0;
+			var maxStatus = null;
+			statusLog.forEach(function(singleStatus, index){
+				if (singleStatus.status > minStatus){
+					minStatus = singleStatus.status;
+					maxStatus = singleStatus;
+				}
+			});
+			return maxStatus;
+		},
+		generateTableRows: function(quantity){
+			var tr = document.createElement('tr');
+			var td = document.createElement('td');
+			td.appendChild(document.createElement('output'));
+			for (var i=0;i<quantity;++i){
+				tr.appendChild(td.cloneNode(true));
+			}
+			return tr;
+		}
 	}
 	var APPLICATION = de.sb.broker.APPLICATION;
 
