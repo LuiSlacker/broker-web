@@ -57,18 +57,19 @@ this.de.sb.broker = this.de.sb.broker || {};
 					tableCells[1].value = de.sb.broker.APPLICATION.prettyDate(auction.creationTimestamp);
 					tableCells[2].value = de.sb.broker.APPLICATION.prettyDate(auction.closureTimestamp);
 					tableCells[3].value = auction.title;
+					tableCells[3].title = auction.description;
 					tableCells[4].value = auction.unitCount;
 					tableCells[5].value = de.sb.broker.APPLICATION.prettyPrice(auction.askingPrice);
 					if (JSON.stringify(user.alias) === JSON.stringify(auction.seller.alias)) {
-						var bidField = document.createElement('Input');
-						bidField.type = "number";
-						bidField.value = de.sb.broker.APPLICATION.prettyPrice(auction.askingPrice);
-					} else {
 						var bidField = document.createElement('Button');
 						bidField.type = "button";
 						bidField.value = "edit auction";
 						var text = document.createTextNode("edit");       // Create a text node
 						bidField.appendChild(text);  
+					} else {
+						var bidField = document.createElement('Input');
+						bidField.type = "number";
+						bidField.value = de.sb.broker.APPLICATION.prettyPrice(auction.askingPrice);
 					}
 					tableCells[6].appendChild(bidField);
 					document.querySelector("section.open-auctions tbody").appendChild(tableRowElement);
