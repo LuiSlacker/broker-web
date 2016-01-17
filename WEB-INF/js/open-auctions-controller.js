@@ -53,13 +53,24 @@ this.de.sb.broker = this.de.sb.broker || {};
 				auctions.forEach(function(auction, index){
 					var tableRowElement = de.sb.broker.APPLICATION.generateTableRows(7).cloneNode(true); 
 					var tableCells = tableRowElement.querySelectorAll('output');
-					tableCells[0].value = "Seller"
+					tableCells[0].value = auction.seller.alias;
 					tableCells[1].value = de.sb.broker.APPLICATION.prettyDate(auction.creationTimestamp);
 					tableCells[2].value = de.sb.broker.APPLICATION.prettyDate(auction.closureTimestamp);
 					tableCells[3].value = auction.title;
 					tableCells[4].value = auction.unitCount;
 					tableCells[5].value = de.sb.broker.APPLICATION.prettyPrice(auction.askingPrice);
-					tableCells[6].value = "Gebot";
+					if (JSON.stringify(user.alias) === JSON.stringify(auction.seller.alias)) {
+						var bidField = document.createElement('Input');
+						bidField.type = "number";
+						bidField.value = de.sb.broker.APPLICATION.prettyPrice(auction.askingPrice);
+					} else {
+						var bidField = document.createElement('Button');
+						bidField.type = "button";
+						bidField.value = "edit auction";
+						var text = document.createTextNode("edit");       // Create a text node
+						bidField.appendChild(text);  
+					}
+					tableCells[6].appendChild(bidField);
 					document.querySelector("section.open-auctions tbody").appendChild(tableRowElement);
 				});
 			}
