@@ -38,13 +38,23 @@ this.de.sb.broker = this.de.sb.broker || {};
 		this.displayOpenAuctions();
 	}
 
-	de.sb.broker.OpenAuctionsController.prototype.showAuctionTemplate = function(){
+	de.sb.broker.OpenAuctionsController.prototype.showAuctionTemplate = function(auction){
 		var AuctionInputElement = document.querySelector("#auction-form-template").content.cloneNode(true).firstElementChild;
 		var inputElements = AuctionInputElement.querySelectorAll("input");
+		
 		var creationTimeStamp = Date.now();
 		inputElements[0].value = de.sb.broker.APPLICATION.prettyDate(creationTimeStamp);
 		inputElements[1].value = de.sb.broker.APPLICATION.prettyDate(creationTimeStamp + 30*24*60*60*1000);
-		AuctionInputElement.querySelector("button").addEventListener("click", this.persistNewAuction.bind(this, creationTimeStamp));
+		
+		if (auction.identity){
+			inputElements[0].value = de.sb.broker.APPLICATION.prettyDate(auction.creationTimestamp);
+			inputElements[1].value = de.sb.broker.APPLICATION.prettyDate(auction.closureTimestamp);
+			inputElements[2].value = auction.title;
+			AuctionInputElement.querySelector("textarea").value = auction.description;
+			inputElements[4].value = de.sb.broker.APPLICATION.prettyPrice(auction.askingPrice);
+			inputElements[3].value = auction.unitCount;
+		}
+		AuctionInputElement.querySelector("button").addEventListener("click", this.persistNewAuction.bind(this, auction, creationTimeStamp));
 		document.querySelector("main").appendChild(AuctionInputElement);
 	}
 
@@ -77,6 +87,9 @@ this.de.sb.broker = this.de.sb.broker || {};
 						var bidField = document.createElement('Button');
 						bidField.type = "button";
 						bidField.value = "edit auction";
+						bidField.addEventListener("click", function(){
+							self.showAuctionTemplate(auction);
+						}, auction);
 						var text = document.createTextNode("edit");       // Create a text node
 						bidField.appendChild(text);  
 					} else {
@@ -107,12 +120,13 @@ this.de.sb.broker = this.de.sb.broker || {};
 		return myBid;
 	}
 	
-	de.sb.broker.OpenAuctionsController.prototype.persistNewAuction = function(creationTimeStamp){
+	de.sb.broker.OpenAuctionsController.prototype.persistNewAuction = function(auction, creationTimeStamp){
 		var inputElements = document.querySelectorAll("section.auction-form input");
 
-		var auction = {};
-		auction.creationTimestamp = creationTimeStamp;
-		auction.closureTimestamp = creationTimeStamp + 30*24*60*60*1000;
+		var auction = (auction.identity) ? auction : {};
+		auction.creationTimestamp = auction.creationTimestamp || creationTimeStamp;
+		auction.closureTimestamp = auction.closureTimestamp || creationTimeStamp + 30*24*60*60*1000;
+
 		auction.title = inputElements[2].value.trim();
 		auction.description = document.querySelector("section.auction-form textarea").value.trim();
 		auction.unitCount = inputElements[3].value;
