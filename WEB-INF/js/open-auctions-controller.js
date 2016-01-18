@@ -32,13 +32,21 @@ this.de.sb.broker = this.de.sb.broker || {};
 		this.displayStatus(200, "OK");
 
 		var openAuctionElement = document.querySelector("#open-auctions-template").content.cloneNode(true).firstElementChild;
-		var AuctionInputElement = document.querySelector("#auction-form-template").content.cloneNode(true).firstElementChild;
+		openAuctionElement.querySelector("button").addEventListener("click", this.showAuctionTemplate.bind(this));
 		document.querySelector("main").appendChild(openAuctionElement);
-		document.querySelector("main").appendChild(AuctionInputElement);
 		
 		this.displayOpenAuctions();
 	}
 
+	de.sb.broker.OpenAuctionsController.prototype.showAuctionTemplate = function(){
+		var AuctionInputElement = document.querySelector("#auction-form-template").content.cloneNode(true).firstElementChild;
+		var inputElements = AuctionInputElement.querySelectorAll("input");
+		var creationTimeStamp = Date.now();
+		inputElements[0].value = de.sb.broker.APPLICATION.prettyDate(creationTimeStamp);
+		inputElements[1].value = de.sb.broker.APPLICATION.prettyDate(creationTimeStamp + 30*24*60*60*1000);
+		AuctionInputElement.querySelector("button").addEventListener("click", this.persistNewAuction.bind(this, creationTimeStamp));
+		document.querySelector("main").appendChild(AuctionInputElement);
+	}
 
 	/**
 	 * Displays the closed auctions of the user.
@@ -46,7 +54,11 @@ this.de.sb.broker = this.de.sb.broker || {};
 	de.sb.broker.OpenAuctionsController.prototype.displayOpenAuctions = function () {
 		var self = this;
 		var user = this.sessionContext.user;
-		de.sb.util.AJAX.invoke("/services/auctions/", "GET", {"Accept": "application/json"}, null, user, function (request) {
+		var node = document.querySelector("section.open-auctions tbody");
+		while (node.hasChildNodes()) {
+		    node.removeChild(node.lastChild);
+		}
+		de.sb.util.AJAX.invoke("/services/auctions/?closed=false", "GET", {"Accept": "application/json"}, null, user, function (request) {
 			self.statusLog.push({"status": request.status, "statusText": request.statusText});
 			if (request.status === 200) {
 				var auctions = JSON.parse(request.responseText);
@@ -54,13 +66,14 @@ this.de.sb.broker = this.de.sb.broker || {};
 					var tableRowElement = de.sb.broker.APPLICATION.generateTableRows(7).cloneNode(true); 
 					var tableCells = tableRowElement.querySelectorAll('output');
 					tableCells[0].value = auction.seller.alias;
+					tableCells[0].title = auction.seller.name.givenName;
 					tableCells[1].value = de.sb.broker.APPLICATION.prettyDate(auction.creationTimestamp);
 					tableCells[2].value = de.sb.broker.APPLICATION.prettyDate(auction.closureTimestamp);
 					tableCells[3].value = auction.title;
 					tableCells[3].title = auction.description;
 					tableCells[4].value = auction.unitCount;
 					tableCells[5].value = de.sb.broker.APPLICATION.prettyPrice(auction.askingPrice);
-					if (JSON.stringify(user.alias) === JSON.stringify(auction.seller.alias)) {
+					if ((user.identity) === (auction.seller.identity)) {
 						var bidField = document.createElement('Button');
 						bidField.type = "button";
 						bidField.value = "edit auction";
@@ -69,6 +82,8 @@ this.de.sb.broker = this.de.sb.broker || {};
 					} else {
 						var bidField = document.createElement('Input');
 						bidField.type = "number";
+						bidField.min="0.01";
+						bidField.step="0.01";
 						bidField.value = de.sb.broker.APPLICATION.prettyPrice(auction.askingPrice);
 					}
 					tableCells[6].appendChild(bidField);
@@ -90,5 +105,32 @@ this.de.sb.broker = this.de.sb.broker || {};
 			}
 		});
 		return myBid;
+	}
+	
+	de.sb.broker.OpenAuctionsController.prototype.persistNewAuction = function(creationTimeStamp){
+		var inputElements = document.querySelectorAll("section.auction-form input");
+
+		var auction = {};
+		auction.creationTimestamp = creationTimeStamp;
+		auction.closureTimestamp = creationTimeStamp + 30*24*60*60*1000;
+		auction.title = inputElements[2].value.trim();
+		auction.description = document.querySelector("section.auction-form textarea").value.trim();
+		auction.unitCount = inputElements[3].value;
+		auction.askingPrice = inputElements[4].value.split('.').join('');
+
+		var self = this;
+		var header = {"Content-type": "application/json"};
+		var body = JSON.stringify(auction);
+		de.sb.util.AJAX.invoke("/services/auctions", "PUT", header, body, this.sessionContext, function (request) {
+			self.displayStatus(request.status, request.statusText);
+			if (request.status === 200) {
+				self.displayOpenAuctions();
+				document.querySelector("main").removeChild(document.querySelector(".auction-form"));
+			} else if (request.status === 409) {
+				de.sb.broker.APPLICATION.welcomeController.display(); 
+			} else {
+				self.displayOpenAuctions();
+			}
+		});
 	}
 } ());
