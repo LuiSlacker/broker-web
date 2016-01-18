@@ -40,6 +40,9 @@ this.de.sb.broker = this.de.sb.broker || {};
 
 	de.sb.broker.OpenAuctionsController.prototype.showAuctionTemplate = function(auction){
 		var AuctionInputElement = document.querySelector("#auction-form-template").content.cloneNode(true).firstElementChild;
+		if (document.querySelector("main").lastChild.className == "auction-form"){
+			document.querySelector("main").removeChild(document.querySelector("main").lastChild);
+		}
 		var inputElements = AuctionInputElement.querySelectorAll("input");
 		
 		var creationTimeStamp = Date.now();
@@ -95,8 +98,8 @@ this.de.sb.broker = this.de.sb.broker || {};
 					} else {
 						var bidField = document.createElement('Input');
 						bidField.type = "number";
-						bidField.min="0.01";
-						bidField.step="0.01";
+						bidField.min= de.sb.broker.APPLICATION.prettyPrice(auction.askingPrice);
+						bidField.step="1.00";
 						bidField.value = de.sb.broker.APPLICATION.prettyPrice(auction.askingPrice);
 					}
 					tableCells[6].appendChild(bidField);
