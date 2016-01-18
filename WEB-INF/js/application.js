@@ -27,11 +27,11 @@ this.de.sb.broker = this.de.sb.broker || {};
 			? new de.sb.broker.PreferencesController(SESSION_CONTEXT)
 			: new de.sb.broker.Controller(3),
 		prettyPrice:function (cents) {
-			return this.addLeadingZero(cents/100) + "." + this.addLeadingZero(cents % 100);
+			return this.addLeadingZero(Math.floor(cents/100)) + "." + this.addLeadingZero(cents % 100);
 		},
 		prettyDate: function (timestamp) {
 			var date = new Date(timestamp);
-			return this.addLeadingZero(date.getMonth()) + "/" + this.addLeadingZero(date.getDate()) + "/" + date.getFullYear() + 
+			return this.addLeadingZero(date.getMonth()+1) + "/" + this.addLeadingZero(date.getDate()) + "/" + date.getFullYear() + 
 			" @ " + this.addLeadingZero(date.getHours()) + ":" + this.addLeadingZero(date.getMinutes());
 		},
 		addLeadingZero: function (number) {
