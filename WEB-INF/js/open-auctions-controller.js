@@ -10,6 +10,7 @@ this.de.sb.broker = this.de.sb.broker || {};
 (function () {
 	var SUPER = de.sb.broker.Controller;
 	var APPLICATION = de.sb.broker.APPLICATION;
+	var statusAccumulator = new de.sb.util.StatusAccumulator();
 
 	/**
 	 * Creates a new closedAuctions controller that is derived from an abstract controller.
@@ -38,18 +39,18 @@ this.de.sb.broker = this.de.sb.broker || {};
 		this.displayOpenAuctions();
 	}
 
-	de.sb.broker.OpenAuctionsController.prototype.showAuctionTemplate = function(auction){
+	de.sb.broker.OpenAuctionsController.prototype.showAuctionTemplate = function(e, auction){
 		var AuctionInputElement = document.querySelector("#auction-form-template").content.cloneNode(true).firstElementChild;
 		if (document.querySelector("main").lastChild.className == "auction-form"){
 			document.querySelector("main").removeChild(document.querySelector("main").lastChild);
 		}
 		var inputElements = AuctionInputElement.querySelectorAll("input");
 		
-		var creationTimeStamp = Date.now();
+		var creationTimeStamp = e.timeStamp;
 		inputElements[0].value = de.sb.broker.APPLICATION.prettyDate(creationTimeStamp);
 		inputElements[1].value = de.sb.broker.APPLICATION.prettyDate(creationTimeStamp + 30*24*60*60*1000);
 		
-		if (auction.identity){
+		if (auction){
 			inputElements[0].value = de.sb.broker.APPLICATION.prettyDate(auction.creationTimestamp);
 			inputElements[1].value = de.sb.broker.APPLICATION.prettyDate(auction.closureTimestamp);
 			inputElements[2].value = auction.title;
@@ -90,9 +91,9 @@ this.de.sb.broker = this.de.sb.broker || {};
 						var bidField = document.createElement('Button');
 						bidField.type = "button";
 						bidField.value = "edit auction";
-						bidField.addEventListener("click", function(){
-							self.showAuctionTemplate(auction);
-						}, auction);
+						bidField.addEventListener("click", (e) => {
+							self.showAuctionTemplate(e, auction);
+						});
 						var text = document.createTextNode("edit");       // Create a text node
 						bidField.appendChild(text);  
 					} else {
@@ -101,32 +102,22 @@ this.de.sb.broker = this.de.sb.broker || {};
 						bidField.min= de.sb.broker.APPLICATION.prettyPrice(auction.askingPrice);
 						bidField.step="1.00";
 						bidField.value = de.sb.broker.APPLICATION.prettyPrice(auction.askingPrice);
+						bidField.addEventListener('change', (e) => {
+							self.persistBid(e, auction.identity);
+						});
 					}
-					tableCells[6].appendChild(bidField);
+					tableCells[6].parentNode.replaceChild(bidField, tableCells[6]);
 					document.querySelector("section.open-auctions tbody").appendChild(tableRowElement);
 				});
 			}
 		});	
 	}
 	
-	/**
-	 * Displays the closed auctions of the user.
-	 */
-	de.sb.broker.OpenAuctionsController.prototype.findMyBidFromAuction = function (auction) {
-		var user = this.sessionContext.user;
-		var myBid;
-		auction.bids.forEach(function(bid, index){
-			if (bid.bidder.identity == user.identity){
-				myBid = bid;
-			}
-		});
-		return myBid;
-	}
-	
 	de.sb.broker.OpenAuctionsController.prototype.persistNewAuction = function(auction, creationTimeStamp){
+		//var backupAuction = JSON.parse(JSON.stringify(auction)); 
 		var inputElements = document.querySelectorAll("section.auction-form input");
 
-		var auction = (auction.identity) ? auction : {};
+		var auction = (auction) ? auction : {};
 		auction.creationTimestamp = auction.creationTimestamp || creationTimeStamp;
 		auction.closureTimestamp = auction.closureTimestamp || creationTimeStamp + 30*24*60*60*1000;
 
@@ -140,13 +131,33 @@ this.de.sb.broker = this.de.sb.broker || {};
 		var body = JSON.stringify(auction);
 		de.sb.util.AJAX.invoke("/services/auctions", "PUT", header, body, this.sessionContext, function (request) {
 			self.displayStatus(request.status, request.statusText);
+			document.querySelector("main").removeChild(document.querySelector(".auction-form"));
 			if (request.status === 200) {
 				self.displayOpenAuctions();
-				document.querySelector("main").removeChild(document.querySelector(".auction-form"));
-			} else if (request.status === 409) {
-				de.sb.broker.APPLICATION.welcomeController.display(); 
-			} else {
-				self.displayOpenAuctions();
+			}
+		});
+	}
+	
+	de.sb.broker.OpenAuctionsController.prototype.persistBid = function(e, auctionID){
+		var semaphore = new de.sb.util.Semaphore(-1);
+		var self = this,
+			bid;
+		semaphore.acquire(() => {
+			self.displayStatus(statusAccumulator.status, statusAccumulator.statusText);
+		});
+		de.sb.util.AJAX.invoke("/services/auctions/" + auctionID + "/bid", "GET", {"Accept": "application/json"}, null, this.sessionContext, function (request) {
+			statusAccumulator.offer(request.status, request.statusText);
+			semaphore.release();
+			if (request.status === 200 || request.status === 204) {
+				bid = (request.status === 200) ? JSON.parse(request.responseText) : {};
+				bid.price = e.target.value.split('.').join('');
+				
+				var header = {"Content-type": "application/json"};
+				var body = JSON.stringify(bid);
+				de.sb.util.AJAX.invoke("/services/auctions/" + auctionID + "/bid", "POST", header, body, self.sessionContext, function (request) {
+					statusAccumulator.offer(request.status, request.statusText);
+					semaphore.release();
+				});
 			}
 		});
 	}

@@ -10,6 +10,9 @@ this.de.sb.broker = this.de.sb.broker || {};
 (function () {
 	var SUPER = de.sb.broker.Controller;
 	var APPLICATION = de.sb.broker.APPLICATION;
+	var semaphore;
+	var statusAccumulator = new de.sb.util.StatusAccumulator();
+
 
 	/**
 	 * Creates a new closedAuctions controller that is derived from an abstract controller.
@@ -36,6 +39,10 @@ this.de.sb.broker = this.de.sb.broker || {};
 		document.querySelector("main").appendChild(closedAuctionElement);
 		document.querySelector("main").appendChild(bidsInClosedAuctionsElement);
 		
+		semaphore = new de.sb.util.Semaphore(-1);
+		semaphore.acquire(() => {
+			this.displayStatus(statusAccumulator.status, statusAccumulator.statusText);
+		});
 		this.displayClosedAuctions();
 		this.displayBidsInClosedAuctions();
 	}
@@ -48,7 +55,8 @@ this.de.sb.broker = this.de.sb.broker || {};
 		var self = this;
 		var user = this.sessionContext.user;
 		de.sb.util.AJAX.invoke("/services/people/" + user.identity + "/auctions?closed=true&seller=true", "GET", {"Accept": "application/json"}, null, user, function (request) {
-			self.statusLog.push({"status": request.status, "statusText": request.statusText});
+			statusAccumulator.offer(request.status, request.statusText);
+			semaphore.release();
 			if (request.status === 200) {
 				var auctions = JSON.parse(request.responseText);
 				auctions.forEach(function(auction, index){
@@ -105,7 +113,8 @@ this.de.sb.broker = this.de.sb.broker || {};
 		var self = this;
 		var user = this.sessionContext.user;
 		de.sb.util.AJAX.invoke("/services/people/" + user.identity + "/auctions?closed=true&seller=false", "GET", {"Accept": "application/json"}, null, user, function (request) {
-			self.statusLog.push({"status": request.status, "statusText": request.statusText});
+			statusAccumulator.offer(request.status, request.statusText);
+			semaphore.release();
 			if (request.status === 200) {
 				var auctions = JSON.parse(request.responseText);
 				console.log(auctions);
